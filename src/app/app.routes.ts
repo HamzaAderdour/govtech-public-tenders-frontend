@@ -46,6 +46,18 @@ export const routes: Routes = [
         loadComponent: () => import('./features/owner/dashboard/owner-dashboard.component').then(m => m.OwnerDashboardComponent)
       },
       {
+        path: 'tenders',
+        loadComponent: () => import('./features/owner/tenders/tender-list/tender-list.component').then(m => m.TenderListComponent)
+      },
+      {
+        path: 'tenders/create',
+        loadComponent: () => import('./features/owner/tenders/tender-create/tender-create.component').then(m => m.TenderCreateComponent)
+      },
+      {
+        path: 'tenders/:id',
+        loadComponent: () => import('./features/owner/tenders/tender-detail/tender-detail.component').then(m => m.TenderDetailComponent)
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full'
@@ -60,6 +72,10 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () => import('./features/supplier/dashboard/supplier-dashboard.component').then(m => m.SupplierDashboardComponent)
+      },
+      {
+        path: 'tenders',
+        loadComponent: () => import('./features/supplier/tenders/tender-list-supplier/tender-list-supplier.component').then(m => m.TenderListSupplierComponent)
       },
       {
         path: '',

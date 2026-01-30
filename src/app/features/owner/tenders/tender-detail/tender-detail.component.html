@@ -1,0 +1,95 @@
+<div class="detail-container" *ngIf="!loading && tender">
+  <div class="header">
+    <button routerLink="/owner/tenders" class="btn-back">← Retour</button>
+    <div class="header-content">
+      <div>
+        <h1>{{ tender.title }}</h1>
+        <app-status-badge [status]="tender.status"></app-status-badge>
+      </div>
+      <div class="actions">
+        <button *ngIf="tender.status === 'DRAFT'" (click)="showPublishConfirm = true" class="btn-primary">
+          Publier
+        </button>
+        <button *ngIf="tender.status === 'OPEN'" (click)="showCloseConfirm = true" class="btn-secondary">
+          Fermer
+        </button>
+        <button *ngIf="tender.status === 'CLOSED'" routerLink="/owner/submissions" [queryParams]="{tenderId: tender.id}" class="btn-primary">
+          Voir soumissions ({{ submissions.length }})
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-grid">
+    <div class="main-content">
+      <div class="card">
+        <h2>Description</h2>
+        <p>{{ tender.description }}</p>
+      </div>
+
+      <div class="card">
+        <h2>Critères d'évaluation</h2>
+        <div class="criteria-list">
+          <div *ngFor="let criterion of tender.criteria" class="criterion-item">
+            <div class="criterion-header">
+              <strong>{{ criterion.name }}</strong>
+              <span class="weight-badge">{{ criterion.weight }}%</span>
+            </div>
+            <p *ngIf="criterion.description">{{ criterion.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <h3>Informations</h3>
+        <div class="info-list">
+          <div class="info-item">
+            <span class="label">Budget</span>
+            <span class="value">{{ formatCurrency(tender.budget) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Date limite</span>
+            <span class="value">{{ tender.deadline | date: 'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Jours restants</span>
+            <span class="value" [class.urgent]="getDaysRemaining() < 7">{{ getDaysRemaining() }} jours</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Soumissions</span>
+            <span class="value">{{ submissions.length }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading">Chargement...</div>
+<div *ngIf="error" class="error">{{ error }}</div>
+
+<!-- Publish Confirmation Modal -->
+<div *ngIf="showPublishConfirm" class="modal-overlay" (click)="showPublishConfirm = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3>Publier l'appel d'offre ?</h3>
+    <p>Une fois publié, l'appel d'offre sera visible par tous les fournisseurs.</p>
+    <div class="modal-actions">
+      <button (click)="showPublishConfirm = false" class="btn-cancel">Annuler</button>
+      <button (click)="publishTender()" class="btn-primary">Publier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Close Confirmation Modal -->
+<div *ngIf="showCloseConfirm" class="modal-overlay" (click)="showCloseConfirm = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h3>Fermer l'appel d'offre ?</h3>
+    <p>Aucune nouvelle soumission ne pourra être déposée après la fermeture.</p>
+    <div class="modal-actions">
+      <button (click)="showCloseConfirm = false" class="btn-cancel">Annuler</button>
+      <button (click)="closeTender()" class="btn-primary">Fermer</button>
+    </div>
+  </div>
+</div>

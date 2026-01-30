@@ -1,0 +1,80 @@
+<div class="tender-list-container">
+  <div class="header">
+    <div>
+      <h1>Mes appels d'offres</h1>
+      <p class="subtitle">Gérez vos appels d'offres publiés</p>
+    </div>
+    <button routerLink="/owner/tenders/create" class="btn-primary">
+      ➕ Créer un appel d'offre
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="error-alert">
+    {{ error }}
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && tenders.length === 0" class="empty-state">
+    <div class="empty-icon">📋</div>
+    <h3>Aucun appel d'offre</h3>
+    <p>Commencez par créer votre premier appel d'offre</p>
+    <button routerLink="/owner/tenders/create" class="btn-primary">
+      Créer un appel d'offre
+    </button>
+  </div>
+
+  <!-- Tenders List -->
+  <div *ngIf="!loading && !error && tenders.length > 0" class="tenders-grid">
+    <div *ngFor="let tender of tenders" class="tender-card">
+      <div class="card-header">
+        <h3>{{ tender.title }}</h3>
+        <app-status-badge [status]="tender.status"></app-status-badge>
+      </div>
+
+      <p class="description">{{ tender.description }}</p>
+
+      <div class="card-info">
+        <div class="info-item">
+          <span class="label">Budget</span>
+          <span class="value">{{ formatCurrency(tender.budget) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Date limite</span>
+          <span class="value" [class.urgent]="getDeadlineStatus(tender.deadline) === 'Expiré'">
+            {{ tender.deadline | date: 'dd/MM/yyyy' }}
+            <span class="deadline-badge">{{ getDeadlineStatus(tender.deadline) }}</span>
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="label">Critères</span>
+          <span class="value">{{ tender.criteria.length }} critères</span>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button [routerLink]="['/owner/tenders', tender.id]" class="btn-secondary">
+          Voir détails
+        </button>
+        <button 
+          *ngIf="tender.status === 'DRAFT'" 
+          [routerLink]="['/owner/tenders', tender.id, 'edit']" 
+          class="btn-outline">
+          Modifier
+        </button>
+        <button 
+          *ngIf="tender.status === 'CLOSED'" 
+          [routerLink]="['/owner/tenders', tender.id, 'submissions']" 
+          class="btn-primary">
+          Voir soumissions
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
