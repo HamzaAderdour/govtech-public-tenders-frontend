@@ -30,6 +30,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent)
       },
       {
+        path: 'tenders',
+        loadComponent: () => import('./features/admin/tenders/admin-tenders.component').then(m => m.AdminTendersComponent)
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full'
@@ -58,6 +62,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/owner/tenders/tender-detail/tender-detail.component').then(m => m.TenderDetailComponent)
       },
       {
+        path: 'submissions',
+        loadComponent: () => import('./features/owner/submissions/submission-list/submission-list.component').then(m => m.SubmissionListComponent)
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full'
@@ -76,6 +84,18 @@ export const routes: Routes = [
       {
         path: 'tenders',
         loadComponent: () => import('./features/supplier/tenders/tender-list-supplier/tender-list-supplier.component').then(m => m.TenderListSupplierComponent)
+      },
+      {
+        path: 'tenders/:id',
+        loadComponent: () => import('./features/supplier/tenders/tender-detail-supplier/tender-detail-supplier.component').then(m => m.TenderDetailSupplierComponent)
+      },
+      {
+        path: 'submissions',
+        loadComponent: () => import('./features/supplier/submissions/my-submissions/my-submissions.component').then(m => m.MySubmissionsComponent)
+      },
+      {
+        path: 'submissions/submit/:tenderId',
+        loadComponent: () => import('./features/supplier/submissions/submit-submission/submit-submission.component').then(m => m.SubmitSubmissionComponent)
       },
       {
         path: '',
