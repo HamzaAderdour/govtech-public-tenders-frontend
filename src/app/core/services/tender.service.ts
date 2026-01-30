@@ -13,12 +13,28 @@ export class TenderService {
   private storageKey = 'tenders_data';
 
   constructor(private authService: AuthService) {
+    // Force reload if data seems corrupted
+    const stored = localStorage.getItem(this.storageKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+          console.warn('Invalid tender data, reinitializing');
+          localStorage.removeItem(this.storageKey);
+        }
+      } catch (e) {
+        console.error('Corrupted tender data, reinitializing');
+        localStorage.removeItem(this.storageKey);
+      }
+    }
+    
     this.loadTenders();
     this.checkDeadlines();
   }
 
   private loadTenders(): void {
     const stored = localStorage.getItem(this.storageKey);
+    console.log('Loading tenders from localStorage:', stored ? 'found' : 'not found');
     if (stored) {
       const tenders = JSON.parse(stored);
       // Convert date strings back to Date objects
@@ -28,8 +44,10 @@ export class TenderService {
         t.updatedAt = new Date(t.updatedAt);
         if (t.publishDate) t.publishDate = new Date(t.publishDate);
       });
+      console.log('Loaded tenders:', tenders.length);
       this.tendersSubject.next(tenders);
     } else {
+      console.log('Initializing mock data');
       this.initializeMockData();
     }
   }
@@ -103,6 +121,7 @@ export class TenderService {
       }
     ];
 
+    console.log('Saving mock tenders:', mockTenders.length);
     this.saveTenders(mockTenders);
   }
 
@@ -134,7 +153,9 @@ export class TenderService {
 
   // Get tenders by owner
   getTendersByOwner(ownerId: string): Observable<Tender[]> {
-    return of(this.tendersSubject.value.filter(t => t.ownerId === ownerId)).pipe(delay(300));
+    const filtered = this.tendersSubject.value.filter(t => t.ownerId === ownerId);
+    console.log('getTendersByOwner:', ownerId, 'found:', filtered.length);
+    return of(filtered).pipe(delay(300));
   }
 
   // Get open tenders (for suppliers)

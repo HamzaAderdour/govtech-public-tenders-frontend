@@ -29,15 +29,22 @@ export class TenderListComponent implements OnInit {
 
   loadTenders(): void {
     const user = this.authService.getCurrentUser();
-    if (!user) return;
+    if (!user) {
+      console.error('No user found');
+      this.loading = false;
+      return;
+    }
 
+    console.log('Loading tenders for user:', user.id);
     this.loading = true;
     this.tenderService.getTendersByOwner(user.id).subscribe({
       next: (tenders) => {
+        console.log('Tenders loaded:', tenders);
         this.tenders = tenders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         this.loading = false;
       },
       error: (err) => {
+        console.error('Error loading tenders:', err);
         this.error = err.message;
         this.loading = false;
       }
