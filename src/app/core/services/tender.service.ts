@@ -9,25 +9,11 @@ import { AuthService } from './auth.service';
 export class TenderService {
   private tendersSubject = new BehaviorSubject<Tender[]>([]);
   public tenders$ = this.tendersSubject.asObservable();
+  private initialized = false;
 
   private storageKey = 'tenders_data';
 
   constructor(private authService: AuthService) {
-    // Force reload if data seems corrupted
-    const stored = localStorage.getItem(this.storageKey);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (!Array.isArray(parsed) || parsed.length === 0) {
-          console.warn('Invalid tender data, reinitializing');
-          localStorage.removeItem(this.storageKey);
-        }
-      } catch (e) {
-        console.error('Corrupted tender data, reinitializing');
-        localStorage.removeItem(this.storageKey);
-      }
-    }
-    
     this.loadTenders();
     this.checkDeadlines();
   }
@@ -36,16 +22,22 @@ export class TenderService {
     const stored = localStorage.getItem(this.storageKey);
     console.log('Loading tenders from localStorage:', stored ? 'found' : 'not found');
     if (stored) {
-      const tenders = JSON.parse(stored);
-      // Convert date strings back to Date objects
-      tenders.forEach((t: any) => {
-        t.deadline = new Date(t.deadline);
-        t.createdAt = new Date(t.createdAt);
-        t.updatedAt = new Date(t.updatedAt);
-        if (t.publishDate) t.publishDate = new Date(t.publishDate);
-      });
-      console.log('Loaded tenders:', tenders.length);
-      this.tendersSubject.next(tenders);
+      try {
+        const tenders = JSON.parse(stored);
+        // Convert date strings back to Date objects
+        tenders.forEach((t: any) => {
+          t.deadline = new Date(t.deadline);
+          t.createdAt = new Date(t.createdAt);
+          t.updatedAt = new Date(t.updatedAt);
+          if (t.publishDate) t.publishDate = new Date(t.publishDate);
+        });
+        console.log('Loaded tenders:', tenders.length);
+        this.tendersSubject.next(tenders);
+        this.initialized = true;
+      } catch (e) {
+        console.error('Error parsing tenders:', e);
+        this.initializeMockData();
+      }
     } else {
       console.log('Initializing mock data');
       this.initializeMockData();
@@ -55,6 +47,7 @@ export class TenderService {
   private saveTenders(tenders: Tender[]): void {
     localStorage.setItem(this.storageKey, JSON.stringify(tenders));
     this.tendersSubject.next(tenders);
+    this.initialized = true;
   }
 
   private initializeMockData(): void {
@@ -148,19 +141,40 @@ export class TenderService {
 
   // Get all tenders
   getAllTenders(): Observable<Tender[]> {
-    return of(this.tendersSubject.value).pipe(delay(300));
+    // If not initialized yet, wait for the subject to emit
+    if (!this.initialized) {
+      return this.tenders$.pipe(
+        delay(50),
+        map(() => this.tendersSubject.value)
+      );
+    }
+    return of(this.tendersSubject.value);
   }
 
   // Get tenders by owner
   getTendersByOwner(ownerId: string): Observable<Tender[]> {
+    // If not initialized yet, wait for the subject to emit
+    if (!this.initialized) {
+      return this.tenders$.pipe(
+        delay(50),
+        map(() => this.tendersSubject.value.filter(t => t.ownerId === ownerId))
+      );
+    }
     const filtered = this.tendersSubject.value.filter(t => t.ownerId === ownerId);
     console.log('getTendersByOwner:', ownerId, 'found:', filtered.length);
-    return of(filtered).pipe(delay(300));
+    return of(filtered);
   }
 
   // Get open tenders (for suppliers)
   getOpenTenders(): Observable<Tender[]> {
-    return of(this.tendersSubject.value.filter(t => t.status === TenderStatus.OPEN)).pipe(delay(300));
+    // If not initialized yet, wait for the subject to emit
+    if (!this.initialized) {
+      return this.tenders$.pipe(
+        delay(50),
+        map(() => this.tendersSubject.value.filter(t => t.status === TenderStatus.OPEN))
+      );
+    }
+    return of(this.tendersSubject.value.filter(t => t.status === TenderStatus.OPEN));
   }
 
   // Get tender by ID
