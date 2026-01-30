@@ -1,0 +1,49 @@
+<div class="layout-container">
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.collapsed]="!isSidebarOpen">
+    <div class="sidebar-header">
+      <h2 class="logo">PPP</h2>
+      <span class="logo-text" *ngIf="isSidebarOpen">Admin</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-item">
+        <span class="icon">📊</span>
+        <span class="text" *ngIf="isSidebarOpen">Dashboard</span>
+      </a>
+      <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
+        <span class="icon">👥</span>
+        <span class="text" *ngIf="isSidebarOpen">Utilisateurs</span>
+      </a>
+      <a routerLink="/admin/tenders" routerLinkActive="active" class="nav-item">
+        <span class="icon">📋</span>
+        <span class="text" *ngIf="isSidebarOpen">Appels d'offres</span>
+      </a>
+      <a routerLink="/admin/submissions" routerLinkActive="active" class="nav-item">
+        <span class="icon">📄</span>
+        <span class="text" *ngIf="isSidebarOpen">Soumissions</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Header -->
+    <header class="header">
+      <button class="toggle-btn" (click)="toggleSidebar()">☰</button>
+      
+      <div class="header-right">
+        <div class="user-info" *ngIf="authService.currentUser$ | async as user">
+          <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>
+          <span class="user-role">{{ user.role }}</span>
+        </div>
+        <button class="logout-btn" (click)="logout()">Déconnexion</button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
