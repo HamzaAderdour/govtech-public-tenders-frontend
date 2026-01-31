@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable, of, throwError, delay, map } from 'rxjs';
 import { Submission, SubmissionStatus, CreateSubmissionDto, SubmissionScore, Tender, EvaluationCriteria } from '../models';
 import { AuthService } from './auth.service';
 import { TenderService } from './tender.service';
+import { NotificationService } from './notification.service';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +16,8 @@ export class SubmissionService {
 
   constructor(
     private authService: AuthService,
-    private tenderService: TenderService
+    private tenderService: TenderService,
+    private notificationService: NotificationService
   ) {
     this.loadSubmissions();
   }
@@ -127,6 +129,15 @@ export class SubmissionService {
         };
 
         this.saveSubmissions([...submissions, newSubmission]);
+        
+        // Notify owner
+        this.notificationService.notifySubmissionReceived(
+          tender.ownerId,
+          tender.title,
+          newSubmission.supplierName,
+          newSubmission.id
+        );
+        
         return newSubmission;
       })
     );
@@ -212,6 +223,24 @@ export class SubmissionService {
 
     // Also update tender status to AWARDED
     this.tenderService.awardTender(submission.tenderId).subscribe();
+
+    // Notify winner
+    this.notificationService.notifyWinner(
+      submission.supplierId,
+      submission.tenderTitle,
+      submission.id
+    );
+
+    // Notify not selected suppliers
+    updatedSubmissions.forEach(s => {
+      if (s.tenderId === submission.tenderId && s.status === SubmissionStatus.NOT_SELECTED) {
+        this.notificationService.notifyNotSelected(
+          s.supplierId,
+          s.tenderTitle,
+          s.id
+        );
+      }
+    });
 
     const winner = updatedSubmissions.find(s => s.id === id)!;
     return of(winner).pipe(delay(500));

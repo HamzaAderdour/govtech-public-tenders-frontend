@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError, delay, map } from 'rxjs';
 import { Tender, TenderStatus, CreateTenderDto } from '../models';
 import { AuthService } from './auth.service';
+import { NotificationService } from './notification.service';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +14,10 @@ export class TenderService {
 
   private storageKey = 'tenders_data';
 
-  constructor(private authService: AuthService) {
+  constructor(
+    private authService: AuthService,
+    private notificationService: NotificationService
+  ) {
     this.loadTenders();
     this.checkDeadlines();
   }
@@ -236,9 +240,20 @@ export class TenderService {
 
   // Publish tender
   publishTender(id: string): Observable<Tender> {
-    return this.updateTender(id, {
-      status: TenderStatus.OPEN,
-      publishDate: new Date()
+    return new Observable(observer => {
+      this.updateTender(id, {
+        status: TenderStatus.OPEN,
+        publishDate: new Date()
+      }).subscribe({
+        next: (tender) => {
+          // Notify all suppliers (mock: get supplier IDs from auth service mock users)
+          const supplierIds = ['3']; // In real app, get all supplier IDs
+          this.notificationService.notifyTenderPublished(tender.id, tender.title, supplierIds);
+          observer.next(tender);
+          observer.complete();
+        },
+        error: (err) => observer.error(err)
+      });
     });
   }
 

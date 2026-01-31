@@ -33,6 +33,7 @@
       <button class="toggle-btn" (click)="toggleSidebar()">☰</button>
       
       <div class="header-right">
+        <app-notifications></app-notifications>
         <div class="user-info" *ngIf="authService.currentUser$ | async as user">
           <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>
           <span class="user-role">{{ user.role }}</span>
