@@ -20,7 +20,6 @@ export class TenderService {
 
   private loadTenders(): void {
     const stored = localStorage.getItem(this.storageKey);
-    console.log('Loading tenders from localStorage:', stored ? 'found' : 'not found');
     if (stored) {
       try {
         const tenders = JSON.parse(stored);
@@ -31,7 +30,6 @@ export class TenderService {
           t.updatedAt = new Date(t.updatedAt);
           if (t.publishDate) t.publishDate = new Date(t.publishDate);
         });
-        console.log('Loaded tenders:', tenders.length);
         this.tendersSubject.next(tenders);
         this.initialized = true;
       } catch (e) {
@@ -39,7 +37,6 @@ export class TenderService {
         this.initializeMockData();
       }
     } else {
-      console.log('Initializing mock data');
       this.initializeMockData();
     }
   }
@@ -114,7 +111,6 @@ export class TenderService {
       }
     ];
 
-    console.log('Saving mock tenders:', mockTenders.length);
     this.saveTenders(mockTenders);
   }
 
@@ -160,9 +156,7 @@ export class TenderService {
         map(() => this.tendersSubject.value.filter(t => t.ownerId === ownerId))
       );
     }
-    const filtered = this.tendersSubject.value.filter(t => t.ownerId === ownerId);
-    console.log('getTendersByOwner:', ownerId, 'found:', filtered.length);
-    return of(filtered);
+    return of(this.tendersSubject.value.filter(t => t.ownerId === ownerId));
   }
 
   // Get open tenders (for suppliers)

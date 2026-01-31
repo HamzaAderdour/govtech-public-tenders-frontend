@@ -3,14 +3,10 @@
     <div>
       <h1>Mes appels d'offres</h1>
       <p class="subtitle">Gérez vos appels d'offres publiés</p>
-      <p class="debug" *ngIf="loading">Loading: {{ loading }}, Tenders: {{ tenders.length }}, Error: {{ error }}</p>
     </div>
-    <div style="display: flex; gap: 0.75rem;">
-      <button (click)="loadTenders()" class="btn-secondary">🔄 Recharger</button>
-      <button routerLink="/owner/tenders/create" class="btn-primary">
-        ➕ Créer un appel d'offre
-      </button>
-    </div>
+    <button routerLink="/owner/tenders/create" class="btn-primary">
+      ➕ Créer un appel d'offre
+    </button>
   </div>
 
   <!-- Loading -->
