@@ -18,6 +18,7 @@ export class TenderCreateComponent {
   error = '';
   currentStep = 1;
   totalSteps = 3;
+  selectedFiles: File[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -27,34 +28,37 @@ export class TenderCreateComponent {
     this.tenderForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(10)]],
       description: ['', [Validators.required, Validators.minLength(50)]],
-      budget: [0, [Validators.required, Validators.min(1000)]],
-      currency: ['EUR', Validators.required],
       deadline: ['', Validators.required],
       criteria: this.fb.array([])
     });
 
-    // Add default criteria
-    this.addCriterion();
+    // Initialize with fixed criteria
+    this.initFixedCriteria();
   }
 
   get criteria(): FormArray {
     return this.tenderForm.get('criteria') as FormArray;
   }
 
-  addCriterion(): void {
-    const criterionForm = this.fb.group({
-      name: ['', Validators.required],
-      weight: [0, [Validators.required, Validators.min(1), Validators.max(100)]],
-      description: ['']
+  private initFixedCriteria(): void {
+    const fixedCriteria = [
+      { name: 'PRICE', label: 'Prix', defaultWeight: 40 },
+      { name: 'TECHNICAL_QUALITY', label: 'Qualité Technique', defaultWeight: 40 },
+      { name: 'DELIVERY_TIME', label: 'Délais de livraison', defaultWeight: 20 }
+    ];
+
+    fixedCriteria.forEach(c => {
+      const criterionForm = this.fb.group({
+        name: [c.name, Validators.required], // Keep internal name as enum value
+        label: [c.label], // Display label
+        weight: [c.defaultWeight, [Validators.required, Validators.min(0), Validators.max(100)]],
+        description: ['']
+      });
+      this.criteria.push(criterionForm);
     });
-    this.criteria.push(criterionForm);
   }
 
-  removeCriterion(index: number): void {
-    if (this.criteria.length > 1) {
-      this.criteria.removeAt(index);
-    }
-  }
+  // Removed addCriterion and removeCriterion as criteria are fixed
 
   getTotalWeight(): number {
     return this.criteria.controls.reduce((sum, control) => {
@@ -81,16 +85,27 @@ export class TenderCreateComponent {
   canProceedToNextStep(): boolean {
     switch (this.currentStep) {
       case 1:
-        return !!(this.tenderForm.get('title')?.valid && 
-               this.tenderForm.get('description')?.valid);
+        return !!(this.tenderForm.get('title')?.valid &&
+          this.tenderForm.get('description')?.valid);
       case 2:
-        return !!(this.tenderForm.get('budget')?.valid && 
-               this.tenderForm.get('deadline')?.valid);
+        return !!(this.tenderForm.get('deadline')?.valid);
       case 3:
         return this.criteria.valid && this.isWeightValid();
       default:
         return false;
     }
+  }
+
+  onFileSelected(event: any): void {
+    if (event.target.files) {
+      for (let i = 0; i < event.target.files.length; i++) {
+        this.selectedFiles.push(event.target.files[i]);
+      }
+    }
+  }
+
+  removeFile(index: number): void {
+    this.selectedFiles.splice(index, 1);
   }
 
   saveDraft(): void {
@@ -109,7 +124,7 @@ export class TenderCreateComponent {
 
     const dto: CreateTenderDto = this.tenderForm.value;
 
-    this.tenderService.createTender(dto).subscribe({
+    this.tenderService.createTender(dto, this.selectedFiles).subscribe({
       next: (tender) => {
         this.loading = false;
         this.router.navigate(['/owner/tenders', tender.id]);
@@ -137,7 +152,7 @@ export class TenderCreateComponent {
 
     const dto: CreateTenderDto = this.tenderForm.value;
 
-    this.tenderService.createTender(dto).subscribe({
+    this.tenderService.createTender(dto, this.selectedFiles).subscribe({
       next: (tender) => {
         this.tenderService.publishTender(tender.id).subscribe({
           next: () => {

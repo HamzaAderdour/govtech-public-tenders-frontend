@@ -1,5 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TenderService } from '../../../core/services/tender.service';
+import { SubmissionService } from '../../../core/services/submission.service';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -15,7 +18,7 @@ import { CommonModule } from '@angular/common';
           <div class="stat-icon">👥</div>
           <div class="stat-content">
             <h3>Utilisateurs</h3>
-            <p class="stat-value">156</p>
+            <p class="stat-value">156</p> <!-- Mock as no user service yet -->
           </div>
         </div>
 
@@ -23,7 +26,7 @@ import { CommonModule } from '@angular/common';
           <div class="stat-icon">📋</div>
           <div class="stat-content">
             <h3>Appels d'offres</h3>
-            <p class="stat-value">42</p>
+            <p class="stat-value">{{ totalTenders }}</p>
           </div>
         </div>
 
@@ -31,7 +34,7 @@ import { CommonModule } from '@angular/common';
           <div class="stat-icon">📄</div>
           <div class="stat-content">
             <h3>Soumissions</h3>
-            <p class="stat-value">128</p>
+            <p class="stat-value">{{ totalSubmissions }}</p>
           </div>
         </div>
 
@@ -39,7 +42,7 @@ import { CommonModule } from '@angular/common';
           <div class="stat-icon">✅</div>
           <div class="stat-content">
             <h3>Marchés attribués</h3>
-            <p class="stat-value">18</p>
+            <p class="stat-value">{{ awarded }}</p>
           </div>
         </div>
       </div>
@@ -47,59 +50,36 @@ import { CommonModule } from '@angular/common';
   `,
   styles: [`
     .dashboard {
-      h1 {
-        font-size: 2rem;
-        color: #111827;
-        margin: 0 0 0.5rem 0;
-      }
-
-      .subtitle {
-        color: #6b7280;
-        margin: 0 0 2rem 0;
-      }
+      h1 { font-size: 2rem; color: #111827; margin: 0 0 0.5rem 0; }
+      .subtitle { color: #6b7280; margin: 0 0 2rem 0; }
     }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .stat-card {
-      background: white;
-      border-radius: 0.75rem;
-      padding: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s;
-
-      &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-
-      .stat-icon {
-        font-size: 2.5rem;
-      }
-
-      .stat-content {
-        h3 {
-          font-size: 0.875rem;
-          color: #6b7280;
-          margin: 0 0 0.25rem 0;
-          font-weight: 500;
-        }
-
-        .stat-value {
-          font-size: 2rem;
-          font-weight: 700;
-          color: #111827;
-          margin: 0;
-        }
-      }
-    }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+    .stat-card { background: white; border-radius: 0.75rem; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); transition: transform 0.2s; }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+    .stat-icon { font-size: 2.5rem; }
+    .stat-content { h3 { font-size: 0.875rem; color: #6b7280; margin: 0 0 0.25rem 0; font-weight: 500; } .stat-value { font-size: 2rem; font-weight: 700; color: #111827; margin: 0; } }
   `]
 })
-export class AdminDashboardComponent {}
+export class AdminDashboardComponent implements OnInit {
+  totalTenders = 0;
+  totalSubmissions = 0;
+  awarded = 0;
+
+  constructor(
+    private tenderService: TenderService,
+    private submissionService: SubmissionService
+  ) { }
+
+  ngOnInit(): void {
+    forkJoin({
+      tenders: this.tenderService.getAllTenders(),
+      submissions: this.submissionService.getAllSubmissions()
+    }).subscribe({
+      next: (data) => {
+        this.totalTenders = data.tenders.length;
+        this.totalSubmissions = data.submissions.length;
+        this.awarded = data.tenders.filter(t => t.status === 'AWARDED').length;
+      }
+    });
+  }
+}

@@ -41,10 +41,7 @@
       <p class="description">{{ tender.description }}</p>
 
       <div class="card-info">
-        <div class="info-item">
-          <span class="label">Budget</span>
-          <span class="value">{{ formatCurrency(tender.budget) }}</span>
-        </div>
+
         <div class="info-item">
           <span class="label">Date limite</span>
           <span class="value" [class.urgent]="getDeadlineStatus(tender.deadline) === 'Expiré'">
@@ -62,15 +59,11 @@
         <button [routerLink]="['/owner/tenders', tender.id]" class="btn-secondary">
           Voir détails
         </button>
-        <button 
-          *ngIf="tender.status === 'DRAFT'" 
-          [routerLink]="['/owner/tenders', tender.id, 'edit']" 
+        <button *ngIf="tender.status === 'DRAFT'" [routerLink]="['/owner/tenders', tender.id, 'edit']"
           class="btn-outline">
           Modifier
         </button>
-        <button 
-          *ngIf="tender.status === 'CLOSED'" 
-          [routerLink]="['/owner/tenders', tender.id, 'submissions']" 
+        <button *ngIf="tender.status === 'CLOSED'" [routerLink]="['/owner/tenders', tender.id, 'submissions']"
           class="btn-primary">
           Voir soumissions
         </button>

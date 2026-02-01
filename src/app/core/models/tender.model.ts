@@ -1,6 +1,6 @@
 export enum TenderStatus {
   DRAFT = 'DRAFT',
-  OPEN = 'OPEN',
+  PUBLISHED = 'PUBLISHED',
   CLOSED = 'CLOSED',
   AWARDED = 'AWARDED'
 }
@@ -16,24 +16,20 @@ export interface Tender {
   id: string;
   title: string;
   description: string;
-  budget: number;
-  currency: string;
   status: TenderStatus;
-  ownerId: string;
-  ownerName: string;
+  ownerUserId: string;
+  organizationId: number;
   publishDate?: Date;
   deadline: Date;
   criteria: EvaluationCriteria[];
   documentIds: string[];
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface CreateTenderDto {
   title: string;
   description: string;
-  budget: number;
-  currency: string;
   deadline: Date;
   criteria: Omit<EvaluationCriteria, 'id'>[];
+  organizationId: number;
+  ownerUserId: string;
 }

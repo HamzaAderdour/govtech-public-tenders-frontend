@@ -1,0 +1,14 @@
+{
+    "/api/v1/tenders": {
+        "target": "http://localhost:8080",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug"
+    },
+    "/api/submissions": {
+        "target": "http://localhost:8084",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug"
+    }
+}

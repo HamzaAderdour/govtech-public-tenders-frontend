@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TenderService } from '../../../../core/services/tender.service';
@@ -20,8 +20,9 @@ export class TenderListComponent implements OnInit {
 
   constructor(
     private tenderService: TenderService,
-    private authService: AuthService
-  ) {}
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
     this.loadTenders();
@@ -37,12 +38,14 @@ export class TenderListComponent implements OnInit {
     this.loading = true;
     this.tenderService.getTendersByOwner(user.id).subscribe({
       next: (tenders) => {
-        this.tenders = tenders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        this.tenders = tenders.sort((a, b) => Number(b.id) - Number(a.id));
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.error = err.message;
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }

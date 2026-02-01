@@ -79,7 +79,7 @@ export class StatusBadgeComponent {
   getBadgeClass(): string {
     const statusMap: Record<string, string> = {
       [TenderStatus.DRAFT]: 'badge-draft',
-      [TenderStatus.OPEN]: 'badge-open',
+      [TenderStatus.PUBLISHED]: 'badge-open',
       [TenderStatus.CLOSED]: 'badge-closed',
       [TenderStatus.AWARDED]: 'badge-awarded',
       [SubmissionStatus.SUBMITTED]: 'badge-submitted',
@@ -95,7 +95,7 @@ export class StatusBadgeComponent {
   getLabel(): string {
     const labelMap: Record<string, string> = {
       [TenderStatus.DRAFT]: 'Brouillon',
-      [TenderStatus.OPEN]: 'Ouvert',
+      [TenderStatus.PUBLISHED]: 'Ouvert',
       [TenderStatus.CLOSED]: 'Fermé',
       [TenderStatus.AWARDED]: 'Attribué',
       [SubmissionStatus.SUBMITTED]: 'Soumis',

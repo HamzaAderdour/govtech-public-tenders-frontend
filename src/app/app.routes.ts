@@ -34,6 +34,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/tenders/admin-tenders.component').then(m => m.AdminTendersComponent)
       },
       {
+        path: 'submissions',
+        loadComponent: () => import('./features/owner/submissions/submission-list/submission-list.component').then(m => m.SubmissionListComponent)
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full'

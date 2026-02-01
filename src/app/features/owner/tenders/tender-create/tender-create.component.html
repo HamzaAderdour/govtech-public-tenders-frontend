@@ -13,7 +13,7 @@
     <div class="step-line" [class.completed]="currentStep > 1"></div>
     <div class="step" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
       <div class="step-number">2</div>
-      <span class="step-label">Budget & Délais</span>
+      <span class="step-label">Délais & Documents</span>
     </div>
     <div class="step-line" [class.completed]="currentStep > 2"></div>
     <div class="step" [class.active]="currentStep === 3" [class.completed]="currentStep > 3">
@@ -29,13 +29,8 @@
 
       <div class="form-group">
         <label for="title">Titre de l'appel d'offre *</label>
-        <input
-          id="title"
-          type="text"
-          formControlName="title"
-          placeholder="Ex: Construction du pont autoroutier A25"
-          [class.error]="tenderForm.get('title')?.invalid && tenderForm.get('title')?.touched"
-        />
+        <input id="title" type="text" formControlName="title" placeholder="Ex: Construction du pont autoroutier A25"
+          [class.error]="tenderForm.get('title')?.invalid && tenderForm.get('title')?.touched" />
         <span class="error-message" *ngIf="tenderForm.get('title')?.invalid && tenderForm.get('title')?.touched">
           Le titre doit contenir au moins 10 caractères
         </span>
@@ -43,111 +38,72 @@
 
       <div class="form-group">
         <label for="description">Description détaillée *</label>
-        <textarea
-          id="description"
-          formControlName="description"
-          rows="6"
+        <textarea id="description" formControlName="description" rows="6"
           placeholder="Décrivez en détail l'objet de l'appel d'offre, les travaux à réaliser, les livrables attendus..."
-          [class.error]="tenderForm.get('description')?.invalid && tenderForm.get('description')?.touched"
-        ></textarea>
-        <span class="error-message" *ngIf="tenderForm.get('description')?.invalid && tenderForm.get('description')?.touched">
+          [class.error]="tenderForm.get('description')?.invalid && tenderForm.get('description')?.touched"></textarea>
+        <span class="error-message"
+          *ngIf="tenderForm.get('description')?.invalid && tenderForm.get('description')?.touched">
           La description doit contenir au moins 50 caractères
         </span>
       </div>
     </div>
 
-    <!-- Step 2: Budget & Deadline -->
+    <!-- Step 2: Deadline & Documents -->
     <div *ngIf="currentStep === 2" class="form-step">
-      <h2>Budget & Délais</h2>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="budget">Budget estimé *</label>
-          <input
-            id="budget"
-            type="number"
-            formControlName="budget"
-            placeholder="1000000"
-            [class.error]="tenderForm.get('budget')?.invalid && tenderForm.get('budget')?.touched"
-          />
-          <span class="error-message" *ngIf="tenderForm.get('budget')?.invalid && tenderForm.get('budget')?.touched">
-            Le budget doit être supérieur à 1000
-          </span>
-        </div>
-
-        <div class="form-group">
-          <label for="currency">Devise</label>
-          <select id="currency" formControlName="currency">
-            <option value="EUR">EUR (€)</option>
-            <option value="USD">USD ($)</option>
-            <option value="GBP">GBP (£)</option>
-          </select>
-        </div>
-      </div>
+      <h2>Délais & Documents</h2>
 
       <div class="form-group">
         <label for="deadline">Date limite de soumission *</label>
-        <input
-          id="deadline"
-          type="date"
-          formControlName="deadline"
-          [min]="getMinDate()"
-          [class.error]="tenderForm.get('deadline')?.invalid && tenderForm.get('deadline')?.touched"
-        />
+        <input id="deadline" type="date" formControlName="deadline" [min]="getMinDate()"
+          [class.error]="tenderForm.get('deadline')?.invalid && tenderForm.get('deadline')?.touched" />
         <span class="error-message" *ngIf="tenderForm.get('deadline')?.invalid && tenderForm.get('deadline')?.touched">
           La date limite est obligatoire
         </span>
+      </div>
+
+      <div class="form-group">
+        <label for="documents">Documents attachés (Cahier des charges, etc.)</label>
+        <input id="documents" type="file" multiple (change)="onFileSelected($event)" class="file-input" />
+
+        <div class="selected-files" *ngIf="selectedFiles.length > 0">
+          <div *ngFor="let file of selectedFiles; let i = index" class="file-item">
+            <span>{{ file.name }} ({{ (file.size / 1024).toFixed(2) }} KB)</span>
+            <button type="button" (click)="removeFile(i)" class="btn-remove-file">✕</button>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Step 3: Evaluation Criteria -->
     <div *ngIf="currentStep === 3" class="form-step">
       <h2>Critères d'évaluation</h2>
-      <p class="info-text">Définissez les critères qui seront utilisés pour évaluer les soumissions. La somme des poids doit être égale à 100%.</p>
+      <p class="info-text">Définissez les critères qui seront utilisés pour évaluer les soumissions. La somme des poids
+        doit être égale à 100%.</p>
 
       <div formArrayName="criteria" class="criteria-list">
         <div *ngFor="let criterion of criteria.controls; let i = index" [formGroupName]="i" class="criterion-card">
           <div class="criterion-header">
-            <h4>Critère {{ i + 1 }}</h4>
-            <button type="button" *ngIf="criteria.length > 1" (click)="removeCriterion(i)" class="btn-remove">
-              ✕
-            </button>
+            <h4>{{ criterion.get('label')?.value }}</h4>
+            <!-- Fixed criteria, no remove button -->
           </div>
 
-          <div class="form-group">
-            <label>Nom du critère *</label>
-            <input
-              type="text"
-              formControlName="name"
-              placeholder="Ex: Prix, Qualité technique, Délais"
-            />
-          </div>
+          <!-- Hidden input for name to keep form value -->
+          <input type="hidden" formControlName="name">
 
           <div class="form-group">
             <label>Poids (%) *</label>
-            <input
-              type="number"
-              formControlName="weight"
-              placeholder="40"
-              min="1"
-              max="100"
-            />
+            <input type="number" formControlName="weight" min="0" max="100" />
           </div>
 
           <div class="form-group">
-            <label>Description</label>
-            <textarea
-              formControlName="description"
-              rows="2"
-              placeholder="Décrivez comment ce critère sera évalué"
-            ></textarea>
+            <label>Description (Optionnel)</label>
+            <textarea formControlName="description" rows="2"
+              placeholder="Décrivez les attentes pour ce critère..."></textarea>
           </div>
         </div>
       </div>
 
-      <button type="button" (click)="addCriterion()" class="btn-add">
-        ➕ Ajouter un critère
-      </button>
+      <!-- No add button for fixed criteria -->
 
       <div class="weight-summary" [class.valid]="isWeightValid()" [class.invalid]="!isWeightValid()">
         <span>Total des poids :</span>
@@ -169,38 +125,22 @@
       </button>
 
       <div class="right-actions">
-        <button 
-          type="button" 
-          *ngIf="currentStep > 1" 
-          (click)="previousStep()" 
-          class="btn-secondary"
+        <button type="button" *ngIf="currentStep > 1" (click)="previousStep()" class="btn-secondary"
           [disabled]="loading">
           ← Précédent
         </button>
 
-        <button 
-          type="button" 
-          *ngIf="currentStep < totalSteps" 
-          (click)="nextStep()" 
-          class="btn-primary"
+        <button type="button" *ngIf="currentStep < totalSteps" (click)="nextStep()" class="btn-primary"
           [disabled]="!canProceedToNextStep() || loading">
           Suivant →
         </button>
 
-        <button 
-          type="button" 
-          *ngIf="currentStep === totalSteps" 
-          (click)="saveDraft()" 
-          class="btn-secondary"
+        <button type="button" *ngIf="currentStep === totalSteps" (click)="saveDraft()" class="btn-secondary"
           [disabled]="loading || !isWeightValid()">
           Enregistrer brouillon
         </button>
 
-        <button 
-          type="button" 
-          *ngIf="currentStep === totalSteps" 
-          (click)="saveAndPublish()" 
-          class="btn-primary"
+        <button type="button" *ngIf="currentStep === totalSteps" (click)="saveAndPublish()" class="btn-primary"
           [disabled]="loading || !isWeightValid()">
           <span *ngIf="!loading">Publier</span>
           <span *ngIf="loading">Publication...</span>

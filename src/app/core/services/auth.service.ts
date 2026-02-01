@@ -9,7 +9,7 @@ import { User, UserRole, LoginCredentials, RegisterData, AuthToken } from '../mo
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
-  
+
   private tokenSubject = new BehaviorSubject<string | null>(null);
   public token$ = this.tokenSubject.asObservable();
 
@@ -50,7 +50,7 @@ export class AuthService {
   private loadStoredAuth(): void {
     const storedUser = localStorage.getItem('currentUser');
     const storedToken = localStorage.getItem('authToken');
-    
+
     if (storedUser && storedToken) {
       this.currentUserSubject.next(JSON.parse(storedUser));
       this.tokenSubject.next(storedToken);
@@ -60,7 +60,7 @@ export class AuthService {
   login(credentials: LoginCredentials): Observable<{ user: User; token: AuthToken }> {
     // Mock login - simulate API call
     const user = this.mockUsers.find(u => u.email === credentials.email);
-    
+
     if (!user) {
       return throwError(() => new Error('Email ou mot de passe incorrect')).pipe(delay(500));
     }

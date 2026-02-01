@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -19,27 +19,37 @@ import { Tender, CreateSubmissionDto } from '../../../../core/models';
 
       <form *ngIf="!loading && tender" [formGroup]="submissionForm" (ngSubmit)="submit()" class="form-card">
         <div class="form-group">
-          <label for="proposedPrice">Prix proposé (EUR) *</label>
-          <input
-            id="proposedPrice"
-            type="number"
-            formControlName="proposedPrice"
-            placeholder="1000000"
-            [class.error]="submissionForm.get('proposedPrice')?.invalid && submissionForm.get('proposedPrice')?.touched"
-          />
-          <span class="error-message" *ngIf="submissionForm.get('proposedPrice')?.invalid && submissionForm.get('proposedPrice')?.touched">
-            Le prix doit être supérieur à 0
-          </span>
+          <label for="price">Prix proposé (EUR) *</label>
+          <input id="price" type="number" formControlName="price" placeholder="Prix" />
         </div>
 
-        <div class="info-box">
-          <h3>Documents requis (simulation)</h3>
-          <p>Dans une version réelle, vous pourriez uploader vos documents techniques et financiers ici.</p>
-          <ul>
-            <li>Dossier technique</li>
-            <li>Offre financière</li>
-            <li>Références</li>
-          </ul>
+        <div class="form-group">
+          <label for="technical">Note Technique (si applicable) *</label>
+          <input id="technical" type="number" formControlName="technical" placeholder="Score Technique" />
+        </div>
+
+        <div class="form-group">
+          <label for="deadline">Délai (Jours) *</label>
+          <input id="deadline" type="number" formControlName="deadline" placeholder="Jours" />
+        </div>
+
+        <div class="form-group">
+          <label for="documents">Documents (Technique, Financier, Références)</label>
+          <input
+            id="documents"
+            type="file"
+            multiple
+            (change)="onFileSelected($event)"
+            class="file-input"
+          />
+          <p class="help-text">Veuillez joindre tous les documents requis.</p>
+          
+          <div class="selected-files" *ngIf="selectedFiles.length > 0">
+            <div *ngFor="let file of selectedFiles; let i = index" class="file-item">
+              <span>{{ file.name }} ({{ (file.size / 1024).toFixed(2) }} KB)</span>
+              <button type="button" (click)="removeFile(i)" class="btn-remove-file">✕</button>
+            </div>
+          </div>
         </div>
 
         <div *ngIf="error" class="error-alert">{{ error }}</div>
@@ -68,10 +78,12 @@ import { Tender, CreateSubmissionDto } from '../../../../core/models';
     .form-group input:focus { outline: none; border-color: #7c3aed; }
     .form-group input.error { border-color: #ef4444; }
     .error-message { display: block; color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
-    .info-box { padding: 1.5rem; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 0.5rem; margin-bottom: 1.5rem; }
-    .info-box h3 { margin: 0 0 0.5rem 0; font-size: 1rem; }
-    .info-box p { color: #6b7280; margin: 0 0 1rem 0; font-size: 0.875rem; }
-    .info-box ul { margin: 0; padding-left: 1.5rem; color: #6b7280; font-size: 0.875rem; }
+    .help-text { color: #6b7280; font-size: 0.875rem; margin-top: 0.25rem; }
+    .file-input { border: 1px dashed #e5e7eb; padding: 2rem; text-align: center; cursor: pointer; }
+    .selected-files { margin-top: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden; }
+    .file-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    .file-item:last-child { border-bottom: none; }
+    .btn-remove-file { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.25rem; }
     .error-alert { padding: 1rem; background: #fee2e2; color: #dc2626; border-radius: 0.5rem; margin-bottom: 1rem; }
     .form-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e5e7eb; }
     .btn-cancel { padding: 0.75rem 1.5rem; background: transparent; color: #6b7280; border: 2px solid #e5e7eb; border-radius: 0.5rem; font-weight: 600; cursor: pointer; }
@@ -87,16 +99,20 @@ export class SubmitSubmissionComponent implements OnInit {
   loading = true;
   submitting = false;
   error = '';
+  selectedFiles: File[] = [];
 
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
     private submissionService: SubmissionService,
-    private tenderService: TenderService
+    private tenderService: TenderService,
+    private cdr: ChangeDetectorRef
   ) {
     this.submissionForm = this.fb.group({
-      proposedPrice: [0, [Validators.required, Validators.min(1)]]
+      price: [0, [Validators.required, Validators.min(0)]],
+      technical: [0, [Validators.required, Validators.min(0)]],
+      deadline: [0, [Validators.required, Validators.min(0)]]
     });
   }
 
@@ -107,13 +123,27 @@ export class SubmitSubmissionComponent implements OnInit {
         next: (tender) => {
           this.tender = tender;
           this.loading = false;
+          this.cdr.detectChanges();
         },
         error: (err) => {
-          this.error = err.message;
+          this.error = 'Erreur lors du chargement de l\'appel d\'offre';
           this.loading = false;
+          this.cdr.detectChanges();
         }
       });
     }
+  }
+
+  onFileSelected(event: any): void {
+    if (event.target.files) {
+      for (let i = 0; i < event.target.files.length; i++) {
+        this.selectedFiles.push(event.target.files[i]);
+      }
+    }
+  }
+
+  removeFile(index: number): void {
+    this.selectedFiles.splice(index, 1);
   }
 
   submit(): void {
@@ -124,19 +154,19 @@ export class SubmitSubmissionComponent implements OnInit {
 
     const dto: CreateSubmissionDto = {
       tenderId: this.tender.id,
-      proposedPrice: this.submissionForm.value.proposedPrice,
-      technicalDocumentIds: ['mock-tech-doc-1', 'mock-tech-doc-2'],
-      financialDocumentIds: ['mock-fin-doc-1']
+      price: this.submissionForm.value.price,
+      technical: this.submissionForm.value.technical,
+      deadline: this.submissionForm.value.deadline,
     };
 
-    this.submissionService.createSubmission(dto).subscribe({
+    this.submissionService.createSubmission(dto, this.selectedFiles).subscribe({
       next: () => {
         this.submitting = false;
         this.router.navigate(['/supplier/submissions']);
       },
       error: (err) => {
         this.submitting = false;
-        this.error = err.message;
+        this.error = err.message || 'Erreur lors de la soumission';
       }
     });
   }

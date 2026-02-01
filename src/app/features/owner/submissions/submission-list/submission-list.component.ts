@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { SubmissionService } from '../../../../core/services/submission.service';
@@ -27,8 +27,8 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
         <div *ngFor="let submission of submissions" class="submission-card">
           <div class="card-header">
             <div>
-              <h3>{{ submission.supplierName }}</h3>
-              <p class="tender-title">{{ submission.tenderTitle }}</p>
+              <h3>Fournisseur: {{ submission.supplierId }}</h3>
+              <p class="tender-title">Tender ID: {{ submission.tenderId }}</p>
             </div>
             <app-status-badge [status]="submission.status"></app-status-badge>
           </div>
@@ -36,22 +36,27 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
           <div class="card-info">
             <div class="info-item">
               <span class="label">Prix proposé</span>
-              <span class="value">{{ formatCurrency(submission.proposedPrice) }}</span>
+              <span class="value">{{ formatCurrency(submission.price) }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Date de soumission</span>
-              <span class="value">{{ submission.submittedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+              <span class="label">Statut</span>
+              <span class="value">{{ submission.status }}</span>
             </div>
-            <div class="info-item" *ngIf="submission.totalScore">
+            <div class="info-item" *ngIf="submission.score">
               <span class="label">Score total</span>
-              <span class="value score">{{ submission.totalScore.toFixed(2) }}/100</span>
+              <span class="value score">{{ submission.score.toFixed(2) }}/100</span>
+            </div>
+          </div>
+
+          <div class="rag-analysis" *ngIf="submission.ragAnalysis">
+            <h4>Analyse IA</h4>
+            <div class="analysis-content">
+              {{ submission.ragAnalysis }}
             </div>
           </div>
 
           <div class="card-actions">
-            <button *ngIf="submission.status === 'SUBMITTED'" (click)="evaluate(submission.id)" class="btn-primary">
-              Évaluer
-            </button>
+
             <button *ngIf="submission.status === 'IN_EVALUATION'" (click)="markAsWinner(submission.id)" class="btn-success">
               Sélectionner comme gagnant
             </button>
@@ -79,6 +84,9 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
     .info-item .label { font-size: 0.875rem; color: #6b7280; }
     .info-item .value { font-weight: 600; }
     .info-item .score { color: #059669; font-size: 1.125rem; }
+    .rag-analysis { margin-bottom: 1.5rem; padding: 1.25rem; background: #e0f2fe; border-radius: 0.75rem; border-left: 4px solid #0ea5e9; }
+    .rag-analysis h4 { margin: 0 0 0.75rem 0; color: #0369a1; font-size: 1rem; }
+    .analysis-content { color: #0c4a6e; font-size: 0.9375rem; line-height: 1.5; white-space: pre-wrap; }
     .card-actions { display: flex; gap: 0.75rem; }
     .btn-primary { padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; }
     .btn-success { padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; }
@@ -94,8 +102,9 @@ export class SubmissionListComponent implements OnInit {
   constructor(
     private submissionService: SubmissionService,
     private tenderService: TenderService,
-    private route: ActivatedRoute
-  ) {}
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
@@ -114,7 +123,7 @@ export class SubmissionListComponent implements OnInit {
       next: (tender) => {
         this.tender = tender;
       },
-      error: () => {}
+      error: () => { }
     });
   }
 
@@ -123,9 +132,11 @@ export class SubmissionListComponent implements OnInit {
       next: (submissions) => {
         this.submissions = submissions;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -135,25 +146,16 @@ export class SubmissionListComponent implements OnInit {
       next: (submissions) => {
         this.submissions = submissions;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
-  evaluate(id: string): void {
-    this.submissionService.evaluateSubmission(id).subscribe({
-      next: () => {
-        if (this.tenderId) {
-          this.loadSubmissions(this.tenderId);
-        } else {
-          this.loadAllSubmissions();
-        }
-      },
-      error: () => {}
-    });
-  }
+
 
   markAsWinner(id: string): void {
     if (confirm('Confirmer la sélection de ce fournisseur comme gagnant ?')) {
@@ -165,7 +167,7 @@ export class SubmissionListComponent implements OnInit {
             this.loadAllSubmissions();
           }
         },
-        error: () => {}
+        error: () => { }
       });
     }
   }
@@ -180,7 +182,7 @@ export class SubmissionListComponent implements OnInit {
             this.loadAllSubmissions();
           }
         },
-        error: () => {}
+        error: () => { }
       });
     }
   }

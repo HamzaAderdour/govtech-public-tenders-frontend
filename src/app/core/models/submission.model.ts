@@ -18,22 +18,20 @@ export interface SubmissionScore {
 export interface Submission {
   id: string;
   tenderId: string;
-  tenderTitle: string;
   supplierId: string;
-  supplierName: string;
   status: SubmissionStatus;
-  proposedPrice: number;
-  technicalDocumentIds: string[];
-  financialDocumentIds: string[];
-  scores?: SubmissionScore[];
-  totalScore?: number;
-  submittedAt: Date;
-  evaluatedAt?: Date;
+  price: number;
+  technical: number;
+  deadline: number;
+  documentId?: string; // ID of the uploaded document
+  score?: number; // Overall score from AI evaluation
+  scores?: SubmissionScore[]; // Detailed scores per criterion
+  ragAnalysis?: string; // AI analysis text
 }
 
 export interface CreateSubmissionDto {
   tenderId: string;
-  proposedPrice: number;
-  technicalDocumentIds: string[];
-  financialDocumentIds: string[];
+  price: number;
+  technical: number;
+  deadline: number;
 }

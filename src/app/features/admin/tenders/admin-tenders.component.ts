@@ -36,20 +36,16 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
             <tr>
               <th>Titre</th>
               <th>Organisation</th>
-              <th>Budget</th>
               <th>Date limite</th>
               <th>Statut</th>
-              <th>Créé le</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let tender of filteredTenders">
               <td><strong>{{ tender.title }}</strong></td>
-              <td>{{ tender.ownerName }}</td>
-              <td>{{ formatCurrency(tender.budget) }}</td>
+              <td>{{ tender.ownerUserId }}</td>
               <td>{{ tender.deadline | date: 'dd/MM/yyyy' }}</td>
               <td><app-status-badge [status]="tender.status"></app-status-badge></td>
-              <td>{{ tender.createdAt | date: 'dd/MM/yyyy' }}</td>
             </tr>
           </tbody>
         </table>
@@ -82,17 +78,17 @@ export class AdminTendersComponent implements OnInit {
   statuses = [
     { label: 'Tous', value: null },
     { label: 'Brouillon', value: TenderStatus.DRAFT },
-    { label: 'Ouvert', value: TenderStatus.OPEN },
+    { label: 'Ouvert', value: TenderStatus.PUBLISHED },
     { label: 'Fermé', value: TenderStatus.CLOSED },
     { label: 'Attribué', value: TenderStatus.AWARDED }
   ];
 
-  constructor(private tenderService: TenderService) {}
+  constructor(private tenderService: TenderService) { }
 
   ngOnInit(): void {
     this.tenderService.getAllTenders().subscribe({
       next: (tenders) => {
-        this.tenders = tenders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        this.tenders = tenders.sort((a, b) => Number(b.id) - Number(a.id));
         this.filteredTenders = tenders;
         this.loading = false;
       },
@@ -116,7 +112,5 @@ export class AdminTendersComponent implements OnInit {
     return this.tenders.filter(t => t.status === status).length;
   }
 
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
-  }
+
 }

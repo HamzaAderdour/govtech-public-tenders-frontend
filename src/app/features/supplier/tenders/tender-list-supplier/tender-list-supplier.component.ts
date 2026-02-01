@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TenderService } from '../../../../core/services/tender.service';
@@ -30,17 +30,14 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
           </div>
           <p class="description">{{ tender.description }}</p>
           <div class="card-info">
-            <div class="info-item">
-              <span class="label">Budget</span>
-              <span class="value">{{ formatCurrency(tender.budget) }}</span>
-            </div>
+
             <div class="info-item">
               <span class="label">Date limite</span>
               <span class="value">{{ tender.deadline | date: 'dd/MM/yyyy' }}</span>
             </div>
             <div class="info-item">
               <span class="label">Organisation</span>
-              <span class="value">{{ tender.ownerName }}</span>
+              <span class="value">{{ tender.ownerUserId }}</span>
             </div>
           </div>
           <button [routerLink]="['/supplier/tenders', tender.id]" class="btn-primary">
@@ -72,16 +69,21 @@ export class TenderListSupplierComponent implements OnInit {
   tenders: Tender[] = [];
   loading = true;
 
-  constructor(private tenderService: TenderService) {}
+  constructor(
+    private tenderService: TenderService,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
     this.tenderService.getOpenTenders().subscribe({
       next: (tenders) => {
         this.tenders = tenders;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }

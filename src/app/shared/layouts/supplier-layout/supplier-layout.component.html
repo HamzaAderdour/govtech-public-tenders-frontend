@@ -27,7 +27,7 @@
     <!-- Header -->
     <header class="header">
       <button class="toggle-btn" (click)="toggleSidebar()">☰</button>
-      
+
       <div class="header-right">
         <app-notifications></app-notifications>
         <div class="user-info" *ngIf="authService.currentUser$ | async as user">

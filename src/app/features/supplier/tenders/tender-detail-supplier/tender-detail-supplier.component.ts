@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TenderService } from '../../../../core/services/tender.service';
@@ -21,7 +21,7 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
           <app-status-badge [status]="tender.status"></app-status-badge>
         </div>
         <button 
-          *ngIf="!hasSubmitted" 
+          *ngIf="!hasSubmitted && tender.status === 'PUBLISHED'" 
           [routerLink]="['/supplier/submissions/submit', tender.id]" 
           class="btn-primary">
           Soumettre un dossier
@@ -58,12 +58,9 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
             <div class="info-list">
               <div class="info-item">
                 <span class="label">Organisation</span>
-                <span class="value">{{ tender.ownerName }}</span>
+                <span class="value">{{ tender.ownerUserId }}</span>
               </div>
-              <div class="info-item">
-                <span class="label">Budget</span>
-                <span class="value">{{ formatCurrency(tender.budget) }}</span>
-              </div>
+
               <div class="info-item">
                 <span class="label">Date limite</span>
                 <span class="value">{{ tender.deadline | date: 'dd/MM/yyyy' }}</span>
@@ -126,8 +123,9 @@ export class TenderDetailSupplierComponent implements OnInit {
     private router: Router,
     private tenderService: TenderService,
     private submissionService: SubmissionService,
-    private authService: AuthService
-  ) {}
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -142,9 +140,11 @@ export class TenderDetailSupplierComponent implements OnInit {
       next: (tender) => {
         this.tender = tender;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -153,11 +153,12 @@ export class TenderDetailSupplierComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user) return;
 
-    this.submissionService.getSubmissionsBySupplier(user.id).subscribe({
+    this.submissionService.getSubmissionsByTender(tenderId).subscribe({
       next: (submissions) => {
-        this.hasSubmitted = submissions.some(s => s.tenderId === tenderId);
+        // Correctly check if user.id matches any supplierId in the tender's submissions
+        this.hasSubmitted = submissions.some(s => String(s.supplierId) === String(user.id));
       },
-      error: () => {}
+      error: () => { }
     });
   }
 

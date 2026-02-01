@@ -10,10 +10,11 @@
         <button *ngIf="tender.status === 'DRAFT'" (click)="showPublishConfirm = true" class="btn-primary">
           Publier
         </button>
-        <button *ngIf="tender.status === 'OPEN'" (click)="showCloseConfirm = true" class="btn-secondary">
+        <button *ngIf="tender.status === 'PUBLISHED'" (click)="showCloseConfirm = true" class="btn-secondary">
           Fermer
         </button>
-        <button *ngIf="tender.status === 'CLOSED'" routerLink="/owner/submissions" [queryParams]="{tenderId: tender.id}" class="btn-primary">
+        <button *ngIf="tender.status === 'CLOSED'" [routerLink]="['/owner', 'submissions']"
+          [queryParams]="{tenderId: tender.id}" class="btn-primary">
           Voir soumissions ({{ submissions.length }})
         </button>
       </div>
@@ -45,10 +46,7 @@
       <div class="card">
         <h3>Informations</h3>
         <div class="info-list">
-          <div class="info-item">
-            <span class="label">Budget</span>
-            <span class="value">{{ formatCurrency(tender.budget) }}</span>
-          </div>
+
           <div class="info-item">
             <span class="label">Date limite</span>
             <span class="value">{{ tender.deadline | date: 'dd/MM/yyyy' }}</span>

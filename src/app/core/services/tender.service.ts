@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError, delay, map } from 'rxjs';
 import { Tender, TenderStatus, CreateTenderDto } from '../models';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import { NotificationService } from './notification.service';
 
@@ -8,282 +10,158 @@ import { NotificationService } from './notification.service';
   providedIn: 'root'
 })
 export class TenderService {
-  private tendersSubject = new BehaviorSubject<Tender[]>([]);
-  public tenders$ = this.tendersSubject.asObservable();
-  private initialized = false;
-
-  private storageKey = 'tenders_data';
+  private apiUrl = environment.tenderApi;
 
   constructor(
+    private http: HttpClient,
     private authService: AuthService,
     private notificationService: NotificationService
-  ) {
-    this.loadTenders();
-    this.checkDeadlines();
-  }
-
-  private loadTenders(): void {
-    const stored = localStorage.getItem(this.storageKey);
-    if (stored) {
-      try {
-        const tenders = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        tenders.forEach((t: any) => {
-          t.deadline = new Date(t.deadline);
-          t.createdAt = new Date(t.createdAt);
-          t.updatedAt = new Date(t.updatedAt);
-          if (t.publishDate) t.publishDate = new Date(t.publishDate);
-        });
-        this.tendersSubject.next(tenders);
-        this.initialized = true;
-      } catch (e) {
-        console.error('Error parsing tenders:', e);
-        this.initializeMockData();
-      }
-    } else {
-      this.initializeMockData();
-    }
-  }
-
-  private saveTenders(tenders: Tender[]): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(tenders));
-    this.tendersSubject.next(tenders);
-    this.initialized = true;
-  }
-
-  private initializeMockData(): void {
-    const mockTenders: Tender[] = [
-      {
-        id: '1',
-        title: 'Construction du pont autoroutier A25',
-        description: 'Appel d\'offres pour la construction d\'un pont autoroutier de 500m avec voies piétonnes et cyclables.',
-        budget: 5000000,
-        currency: 'EUR',
-        status: TenderStatus.OPEN,
-        ownerId: '2',
-        ownerName: 'Ministère des Infrastructures',
-        publishDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        deadline: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
-        criteria: [
-          { id: 'c1', name: 'Prix', weight: 40, description: 'Offre financière' },
-          { id: 'c2', name: 'Qualité technique', weight: 35, description: 'Expertise et méthodologie' },
-          { id: 'c3', name: 'Délais', weight: 25, description: 'Respect du planning' }
-        ],
-        documentIds: ['doc1', 'doc2'],
-        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-      },
-      {
-        id: '2',
-        title: 'Fourniture de matériel informatique',
-        description: 'Acquisition de 500 ordinateurs portables et 50 serveurs pour l\'administration.',
-        budget: 750000,
-        currency: 'EUR',
-        status: TenderStatus.OPEN,
-        ownerId: '2',
-        ownerName: 'Ministère des Infrastructures',
-        publishDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        deadline: new Date(Date.now() + 17 * 24 * 60 * 60 * 1000),
-        criteria: [
-          { id: 'c1', name: 'Prix', weight: 50, description: 'Meilleur rapport qualité/prix' },
-          { id: 'c2', name: 'Garantie', weight: 30, description: 'Durée et étendue de la garantie' },
-          { id: 'c3', name: 'Support technique', weight: 20, description: 'Disponibilité du support' }
-        ],
-        documentIds: ['doc3'],
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-      },
-      {
-        id: '3',
-        title: 'Rénovation énergétique des bâtiments publics',
-        description: 'Travaux d\'isolation et installation de panneaux solaires sur 10 bâtiments administratifs.',
-        budget: 2500000,
-        currency: 'EUR',
-        status: TenderStatus.CLOSED,
-        ownerId: '2',
-        ownerName: 'Ministère des Infrastructures',
-        publishDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-        deadline: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        criteria: [
-          { id: 'c1', name: 'Prix', weight: 35, description: 'Coût total du projet' },
-          { id: 'c2', name: 'Performance énergétique', weight: 40, description: 'Économies d\'énergie prévues' },
-          { id: 'c3', name: 'Expérience', weight: 25, description: 'Références similaires' }
-        ],
-        documentIds: ['doc4', 'doc5'],
-        createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-      }
-    ];
-
-    this.saveTenders(mockTenders);
-  }
-
-  // Check deadlines and auto-close tenders
-  private checkDeadlines(): void {
-    setInterval(() => {
-      const tenders = this.tendersSubject.value;
-      const now = new Date();
-      let updated = false;
-
-      tenders.forEach(tender => {
-        if (tender.status === TenderStatus.OPEN && tender.deadline < now) {
-          tender.status = TenderStatus.CLOSED;
-          tender.updatedAt = now;
-          updated = true;
-        }
-      });
-
-      if (updated) {
-        this.saveTenders(tenders);
-      }
-    }, 60000); // Check every minute
-  }
+  ) { }
 
   // Get all tenders
   getAllTenders(): Observable<Tender[]> {
-    // If not initialized yet, wait for the subject to emit
-    if (!this.initialized) {
-      return this.tenders$.pipe(
-        delay(50),
-        map(() => this.tendersSubject.value)
-      );
-    }
-    return of(this.tendersSubject.value);
+    return this.http.get<Tender[]>(this.apiUrl).pipe(
+      map(tenders => tenders.map(t => this.mapTender(t)))
+    );
   }
 
   // Get tenders by owner
   getTendersByOwner(ownerId: string): Observable<Tender[]> {
-    // If not initialized yet, wait for the subject to emit
-    if (!this.initialized) {
-      return this.tenders$.pipe(
-        delay(50),
-        map(() => this.tendersSubject.value.filter(t => t.ownerId === ownerId))
-      );
-    }
-    return of(this.tendersSubject.value.filter(t => t.ownerId === ownerId));
+    return this.http.get<Tender[]>(`${this.apiUrl}/owner/${ownerId}`).pipe(
+      map(tenders => tenders.map(t => this.mapTender(t)))
+    );
   }
 
   // Get open tenders (for suppliers)
   getOpenTenders(): Observable<Tender[]> {
-    // If not initialized yet, wait for the subject to emit
-    if (!this.initialized) {
-      return this.tenders$.pipe(
-        delay(50),
-        map(() => this.tendersSubject.value.filter(t => t.status === TenderStatus.OPEN))
-      );
-    }
-    return of(this.tendersSubject.value.filter(t => t.status === TenderStatus.OPEN));
+    return this.getAllTenders().pipe(
+      map(tenders => tenders.filter(t => t.status === TenderStatus.PUBLISHED))
+    );
   }
 
   // Get tender by ID
   getTenderById(id: string): Observable<Tender> {
-    const tender = this.tendersSubject.value.find(t => t.id === id);
-    if (!tender) {
-      return throwError(() => new Error('Appel d\'offre non trouvé')).pipe(delay(300));
+    return this.http.get<Tender>(`${this.apiUrl}/${id}`).pipe(
+      map(tender => this.mapTender(tender))
+    );
+  }
+
+  private mapTender(tender: any): Tender {
+    try {
+      // Safely parse deadline
+      let deadline: Date;
+      if (tender.deadline) {
+        if (typeof tender.deadline === 'string') {
+          deadline = new Date(tender.deadline);
+        } else if (tender.deadline instanceof Date) {
+          deadline = tender.deadline;
+        } else if (Array.isArray(tender.deadline)) {
+          // Handle LocalDate array format [year, month, day]
+          const [year, month, day] = tender.deadline;
+          deadline = new Date(year, month - 1, day);
+        } else {
+          deadline = new Date();
+        }
+      } else {
+        deadline = new Date();
+      }
+
+      // Safely parse publication date
+      let publishDate: Date | undefined;
+      if (tender.publicationDate) {
+        if (typeof tender.publicationDate === 'string') {
+          publishDate = new Date(tender.publicationDate);
+        } else if (Array.isArray(tender.publicationDate)) {
+          const [year, month, day] = tender.publicationDate;
+          publishDate = new Date(year, month - 1, day);
+        }
+      }
+
+      return {
+        ...tender,
+        deadline: deadline,
+        publishDate: publishDate,
+        ownerUserId: tender.ownerUserId || tender.ownerId,
+        criteria: (tender.criteria || []).map((c: any) => ({
+          ...c,
+          name: c.type || c.name // Map backend 'type' to frontend 'name'
+        }))
+      };
+    } catch (error) {
+      console.error('Error mapping tender:', error, tender);
+      // Return tender with minimal mapping if error occurs
+      return {
+        ...tender,
+        deadline: new Date(),
+        ownerUserId: tender.ownerUserId || tender.ownerId,
+        criteria: tender.criteria || []
+      };
     }
-    return of(tender).pipe(delay(300));
   }
 
   // Create tender
-  createTender(dto: CreateTenderDto): Observable<Tender> {
+  createTender(dto: CreateTenderDto, files: File[] = []): Observable<Tender> {
     const user = this.authService.getCurrentUser();
     if (!user) {
       return throwError(() => new Error('Utilisateur non authentifié'));
     }
 
-    const tenders = this.tendersSubject.value;
-    const newTender: Tender = {
-      id: `tender_${Date.now()}`,
+    const formData = new FormData();
+
+    // Map criteria to backend EXPECTED format (EvaluationCriterionRequestDTO)
+    // ONLY type and weight are allowed!
+    const criteria = (dto.criteria || []).map(c => ({
+      type: c.name,
+      weight: c.weight
+    }));
+
+    // Construct the backend-expected DTO strictly
+    const tenderRequest = {
       title: dto.title,
       description: dto.description,
-      budget: dto.budget,
-      currency: dto.currency,
-      status: TenderStatus.DRAFT,
-      ownerId: user.id,
-      ownerName: user.organizationName || `${user.firstName} ${user.lastName}`,
-      deadline: dto.deadline,
-      criteria: dto.criteria.map((c, index) => ({
-        id: `criteria_${Date.now()}_${index}`,
-        name: c.name,
-        weight: c.weight,
-        description: c.description
-      })),
-      documentIds: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+      organizationId: 2, // Default org ID for bridge bridge project
+      ownerUserId: user.id || '1',
+      deadline: (dto.deadline instanceof Date ? dto.deadline : new Date(dto.deadline)).toISOString().split('T')[0],
+      criteria: criteria
     };
 
-    this.saveTenders([...tenders, newTender]);
-    return of(newTender).pipe(delay(500));
+    formData.append('data', JSON.stringify(tenderRequest));
+
+    if (files && files.length > 0) {
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+    }
+
+    return this.http.post<Tender>(this.apiUrl, formData);
   }
 
   // Update tender
   updateTender(id: string, updates: Partial<Tender>): Observable<Tender> {
-    const tenders = this.tendersSubject.value;
-    const index = tenders.findIndex(t => t.id === id);
-
-    if (index === -1) {
-      return throwError(() => new Error('Appel d\'offre non trouvé'));
-    }
-
-    const updatedTender = {
-      ...tenders[index],
-      ...updates,
-      updatedAt: new Date()
-    };
-
-    tenders[index] = updatedTender;
-    this.saveTenders(tenders);
-
-    return of(updatedTender).pipe(delay(500));
+    return this.http.put<Tender>(`${this.apiUrl}/${id}`, updates);
   }
 
   // Publish tender
   publishTender(id: string): Observable<Tender> {
-    return new Observable(observer => {
-      this.updateTender(id, {
-        status: TenderStatus.OPEN,
-        publishDate: new Date()
-      }).subscribe({
-        next: (tender) => {
-          // Notify all suppliers (mock: get supplier IDs from auth service mock users)
-          const supplierIds = ['3']; // In real app, get all supplier IDs
-          this.notificationService.notifyTenderPublished(tender.id, tender.title, supplierIds);
-          observer.next(tender);
-          observer.complete();
-        },
-        error: (err) => observer.error(err)
-      });
-    });
+    return this.http.patch<Tender>(`${this.apiUrl}/${id}/publish`, {});
   }
 
   // Close tender
   closeTender(id: string): Observable<Tender> {
-    return this.updateTender(id, {
-      status: TenderStatus.CLOSED
-    });
+    return this.http.patch<Tender>(`${this.apiUrl}/${id}/close`, {});
   }
 
-  // Award tender
+  // Award tender - Placeholder as backend might not have specific endpoint yet
   awardTender(id: string): Observable<Tender> {
-    return this.updateTender(id, {
-      status: TenderStatus.AWARDED
-    });
+    return of({} as Tender);
   }
 
   // Delete tender
   deleteTender(id: string): Observable<void> {
-    const tenders = this.tendersSubject.value.filter(t => t.id !== id);
-    this.saveTenders(tenders);
-    return of(void 0).pipe(delay(300));
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  // Get tenders by status
-  getTendersByStatus(status: TenderStatus): Observable<Tender[]> {
-    return of(this.tendersSubject.value.filter(t => t.status === status)).pipe(delay(300));
-  }
-
-  // Get tender statistics
+  // Get statistics
   getStatistics(): Observable<{
     total: number;
     draft: number;
@@ -291,13 +169,14 @@ export class TenderService {
     closed: number;
     awarded: number;
   }> {
-    const tenders = this.tendersSubject.value;
-    return of({
-      total: tenders.length,
-      draft: tenders.filter(t => t.status === TenderStatus.DRAFT).length,
-      open: tenders.filter(t => t.status === TenderStatus.OPEN).length,
-      closed: tenders.filter(t => t.status === TenderStatus.CLOSED).length,
-      awarded: tenders.filter(t => t.status === TenderStatus.AWARDED).length
-    }).pipe(delay(300));
+    return this.getAllTenders().pipe(
+      map(tenders => ({
+        total: tenders.length,
+        draft: tenders.filter(t => t.status === TenderStatus.DRAFT).length,
+        open: tenders.filter(t => t.status === TenderStatus.PUBLISHED).length,
+        closed: tenders.filter(t => t.status === TenderStatus.CLOSED).length,
+        awarded: tenders.filter(t => t.status === TenderStatus.AWARDED).length
+      }))
+    );
   }
 }
